@@ -50,6 +50,14 @@
 #include "thread.h"
 #include "request.h"
 
+/* Opt-in diagnostic logging for serial timeouts. */
+static int nexiq_trace(void)
+{
+    static int enabled = -1;
+    if (enabled == -1) enabled = getenv("WINE_NEXIQ_TRACE") != NULL;
+    return enabled;
+}
+
 struct wait_req
 {
     struct serial *serial;
@@ -198,6 +206,11 @@ static void serial_ioctl( struct fd *fd, ioctl_code_t code, struct async *async 
             return;
         }
         memcpy( &serial->timeouts, get_req_data(), sizeof(serial->timeouts) );
+        if (nexiq_trace())
+            fprintf(stderr, "NEXIQ_SERIAL server_set fd=%p interval=%u read_mul=%u read_const=%u write_mul=%u write_const=%u\n",
+                    (void *)serial->fd, serial->timeouts.ReadIntervalTimeout,
+                    serial->timeouts.ReadTotalTimeoutMultiplier, serial->timeouts.ReadTotalTimeoutConstant,
+                    serial->timeouts.WriteTotalTimeoutMultiplier, serial->timeouts.WriteTotalTimeoutConstant);
         return;
 
     case IOCTL_SERIAL_GET_WAIT_MASK:
@@ -269,6 +282,9 @@ static void serial_queue_async( struct fd *fd, struct async *async, int type, in
         break;
     }
 
+    if (nexiq_trace())
+        fprintf(stderr, "NEXIQ_SERIAL server_queue fd=%p type=%d count=%d interval=%u timeout_ms=%lld\n",
+                (void *)fd, type, count, serial->timeouts.ReadIntervalTimeout, (long long)timeout);
     fd_queue_async( fd, async, type );
     if (timeout) async_set_timeout( async, timeout * -10000, STATUS_TIMEOUT );
     set_error( STATUS_PENDING );
@@ -279,6 +295,9 @@ static void serial_read_timeout( void *arg )
     struct serial *serial = arg;
 
     serial->read_timer = NULL;
+    if (nexiq_trace())
+        fprintf(stderr, "NEXIQ_SERIAL server_interval_expired fd=%p interval=%u\n",
+                (void *)serial->fd, serial->timeouts.ReadIntervalTimeout);
     fd_async_wake_up( serial->fd, ASYNC_TYPE_READ, STATUS_TIMEOUT );
 }
 
@@ -298,6 +317,9 @@ static void serial_reselect_async( struct fd *fd, struct async_queue *queue )
     {
         serial->read_timer = add_timeout_user( (timeout_t)serial->timeouts.ReadIntervalTimeout * -10000,
                                                serial_read_timeout, serial );
+        if (nexiq_trace())
+            fprintf(stderr, "NEXIQ_SERIAL server_interval_armed fd=%p interval=%u timer=%p\n",
+                    (void *)fd, serial->timeouts.ReadIntervalTimeout, (void *)serial->read_timer);
     }
     default_fd_reselect_async( fd, queue );
 }
