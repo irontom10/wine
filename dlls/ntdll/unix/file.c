@@ -5215,6 +5215,14 @@ NTSTATUS WINAPI NtSetInformationFile( HANDLE handle, IO_STATUS_BLOCK *io,
  *                  Asynchronous file I/O                              *
  */
 
+/* Set WINE_NEXIQ_TRACE=1 to inspect serial I/O without changing semantics. */
+static int nexiq_trace(void)
+{
+    static int enabled = -1;
+    if (enabled == -1) enabled = getenv("WINE_NEXIQ_TRACE") != NULL;
+    return enabled;
+}
+
 struct async_fileio_read
 {
     struct async_fileio io;
@@ -5304,6 +5312,9 @@ static BOOL async_read_proc( void *user, ULONG_PTR *info, unsigned int *status )
     struct async_fileio_read *fileio = user;
     int fd, needs_close, result;
 
+    if (nexiq_trace() && fileio->count >= 255)
+        fprintf(stderr, "NEXIQ_SERIAL wake handle=%p status=%#x count=%u accumulated=%u avail=%d\n",
+                fileio->handle, *status, fileio->count, fileio->already, fileio->avail_mode);
     switch (*status)
     {
     case STATUS_ALERTED: /* got some new data */
@@ -5313,6 +5324,9 @@ static BOOL async_read_proc( void *user, ULONG_PTR *info, unsigned int *status )
             break;
 
         result = virtual_locked_read(fd, &fileio->buffer[fileio->already], fileio->count-fileio->already);
+        if (nexiq_trace() && fileio->count >= 255)
+            fprintf(stderr, "NEXIQ_SERIAL unix_read handle=%p result=%d errno=%d accumulated=%u requested=%u\n",
+                    fileio->handle, result, result < 0 ? errno : 0, fileio->already, fileio->count);
         if (needs_close) close( fd );
 
         if (result < 0)
@@ -5345,6 +5359,9 @@ static BOOL async_read_proc( void *user, ULONG_PTR *info, unsigned int *status )
     }
 
     *info = fileio->already;
+    if (nexiq_trace() && fileio->count >= 255)
+        fprintf(stderr, "NEXIQ_SERIAL complete handle=%p status=%#x received=%u requested=%u\n",
+                fileio->handle, *status, fileio->already, fileio->count);
     release_fileio( &fileio->io );
     return TRUE;
 }
@@ -5599,6 +5616,11 @@ static unsigned int get_io_timeouts( HANDLE handle, enum server_fd_type type, UL
                     timeouts->total += count * st.WriteTotalTimeoutMultiplier;
             }
         }
+        if (nexiq_trace())
+            fprintf(stderr, "NEXIQ_SERIAL client_timeout handle=%p count=%u read=%d interval=%u read_mul=%u read_const=%u write_mul=%u write_const=%u effective_interval=%d effective_total=%d\n",
+                    handle, count, is_read, st.ReadIntervalTimeout, st.ReadTotalTimeoutMultiplier,
+                    st.ReadTotalTimeoutConstant, st.WriteTotalTimeoutMultiplier,
+                    st.WriteTotalTimeoutConstant, timeouts->interval, timeouts->total);
         break;
     }
     case FD_TYPE_SOCKET:
@@ -5648,6 +5670,10 @@ static NTSTATUS get_io_avail_mode( HANDLE handle, enum server_fd_type type, BOOL
             *avail_mode = (!st.ReadTotalTimeoutMultiplier &&
                            !st.ReadTotalTimeoutConstant &&
                            st.ReadIntervalTimeout == MAXDWORD);
+            if (nexiq_trace())
+                fprintf(stderr, "NEXIQ_SERIAL avail handle=%p mode=%d interval=%u multiplier=%u constant=%u\n",
+                        handle, *avail_mode, st.ReadIntervalTimeout,
+                        st.ReadTotalTimeoutMultiplier, st.ReadTotalTimeoutConstant);
         }
         break;
     }
@@ -5689,6 +5715,9 @@ static unsigned int register_async_file_read( HANDLE handle, HANDLE event,
     }
     SERVER_END_REQ;
 
+    if (nexiq_trace() && length >= 255)
+        fprintf(stderr, "NEXIQ_SERIAL register handle=%p requested=%u already=%u avail=%d status=%#x\n",
+                handle, length, already, avail_mode, status);
     if (status != STATUS_PENDING) free( fileio );
     return status;
 }
@@ -5839,6 +5868,9 @@ NTSTATUS WINAPI NtReadFile( HANDLE handle, HANDLE event, PIO_APC_ROUTINE apc, vo
         return status;
     }
 
+    if (type == FD_TYPE_SERIAL && nexiq_trace())
+        fprintf(stderr, "NEXIQ_SERIAL NtReadFile handle=%p length=%u async=%d\n",
+                handle, length, async_read);
     if (type == FD_TYPE_SERIAL && async_read && length)
     {
         /* an asynchronous serial port read with a read interval timeout needs to
