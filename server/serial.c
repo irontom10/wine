@@ -273,8 +273,17 @@ static void serial_queue_async( struct fd *fd, struct async *async, int type, in
     switch (type)
     {
     case ASYNC_TYPE_READ:
-        timeout = serial->timeouts.ReadTotalTimeoutConstant +
-            (timeout_t)serial->timeouts.ReadTotalTimeoutMultiplier * count;
+        /* MAXDWORD/MAXDWORD with a nonzero constant is a special read mode:
+           return on the first available byte, or after the constant timeout.
+           The multiplier must not be applied to the requested byte count. */
+        if (serial->timeouts.ReadIntervalTimeout == MAXDWORD &&
+            serial->timeouts.ReadTotalTimeoutMultiplier == MAXDWORD &&
+            serial->timeouts.ReadTotalTimeoutConstant &&
+            serial->timeouts.ReadTotalTimeoutConstant != MAXDWORD)
+            timeout = serial->timeouts.ReadTotalTimeoutConstant;
+        else
+            timeout = serial->timeouts.ReadTotalTimeoutConstant +
+                (timeout_t)serial->timeouts.ReadTotalTimeoutMultiplier * count;
         break;
     case ASYNC_TYPE_WRITE:
         timeout = serial->timeouts.WriteTotalTimeoutConstant +
@@ -307,13 +316,17 @@ static void serial_reselect_async( struct fd *fd, struct async_queue *queue )
 
     if (serial->read_timer)
     {
-        if (!(default_fd_get_poll_events( fd ) & POLLIN))
+        /* MAXDWORD is a sentinel, not a 49-day inter-byte timeout. */
+        if (serial->timeouts.ReadIntervalTimeout == MAXDWORD ||
+            !(default_fd_get_poll_events( fd ) & POLLIN))
         {
             remove_timeout_user( serial->read_timer );
             serial->read_timer = NULL;
         }
     }
-    else if (serial->timeouts.ReadIntervalTimeout && (default_fd_get_poll_events( fd ) & POLLIN))
+    else if (serial->timeouts.ReadIntervalTimeout &&
+             serial->timeouts.ReadIntervalTimeout != MAXDWORD &&
+             (default_fd_get_poll_events( fd ) & POLLIN))
     {
         serial->read_timer = add_timeout_user( (timeout_t)serial->timeouts.ReadIntervalTimeout * -10000,
                                                serial_read_timeout, serial );
