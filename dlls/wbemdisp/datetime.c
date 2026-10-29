@@ -25,6 +25,8 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(wbemdisp);
 
+static const GUID null_guid = {0};
+
 #define TICKS_PER_MINUTE 600000000ULL
 
 struct datetime
@@ -180,7 +182,7 @@ static HRESULT WINAPI datetime_GetIDsOfNames( ISWbemDateTime *iface, REFIID iid,
 {
     ITypeInfo *info;
     HRESULT hr;
-    if (!IsEqualGUID( iid, &IID_NULL )) return DISP_E_UNKNOWNINTERFACE;
+    if (!IsEqualGUID( iid, &null_guid )) return DISP_E_UNKNOWNINTERFACE;
     if (!names || !count || !ids) return E_INVALIDARG;
     hr = datetime_typeinfo( &info );
     if (SUCCEEDED( hr ))
@@ -197,7 +199,7 @@ static HRESULT WINAPI datetime_Invoke( ISWbemDateTime *iface, DISPID member, REF
 {
     ITypeInfo *info;
     HRESULT hr;
-    if (!IsEqualGUID( iid, &IID_NULL )) return DISP_E_UNKNOWNINTERFACE;
+    if (!IsEqualGUID( iid, &null_guid )) return DISP_E_UNKNOWNINTERFACE;
     hr = datetime_typeinfo( &info );
     if (SUCCEEDED( hr ))
     {
