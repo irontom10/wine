@@ -18,3 +18,5 @@
 
 HRESULT SWbemLocator_create(LPVOID *);
 HRESULT SWbemNamedValueSet_create(void **);
+
+HRESULT SWbemDateTime_create(void **);

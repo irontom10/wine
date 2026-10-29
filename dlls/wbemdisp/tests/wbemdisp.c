@@ -634,8 +634,85 @@ todo_wine {
     ISWbemNamedValueSet_Release(set);
 }
 
+
+static void test_swbemdatetime(void)
+{
+    ISWbemDateTime *date = NULL;
+    IDispatch *dispatch = NULL;
+    WCHAR *name = L"Value";
+    DISPID id;
+    BSTR value;
+    LONG year, month;
+    VARIANT_BOOL specified, interval;
+    DATE var_date;
+    HRESULT hr;
+
+    hr = CoCreateInstance( &CLSID_SWbemDateTime, NULL, CLSCTX_INPROC_SERVER,
+                           &IID_ISWbemDateTime, (void **)&date );
+    ok( hr == S_OK, "CoCreateInstance failed: %#lx\n", hr );
+    if (!date) return;
+
+    hr = ISWbemDateTime_QueryInterface( date, &IID_IDispatch, (void **)&dispatch );
+    ok( hr == S_OK, "IDispatch unavailable: %#lx\n", hr );
+    if (dispatch)
+    {
+        hr = IDispatch_GetIDsOfNames( dispatch, &IID_NULL, &name, 1, english, &id );
+        ok( hr == S_OK && id == 0, "GetIDsOfNames returned %#lx, id %ld\n", hr, id );
+        IDispatch_Release( dispatch );
+    }
+
+    value = SysAllocString( L"20240102030405.006000+000" );
+    hr = ISWbemDateTime_put_Value( date, value );
+    ok( hr == S_OK, "put_Value failed: %#lx\n", hr );
+    SysFreeString( value );
+
+    hr = ISWbemDateTime_get_Year( date, &year );
+    ok( hr == S_OK && year == 2024, "Year returned %#lx, %ld\n", hr, year );
+    hr = ISWbemDateTime_get_Month( date, &month );
+    ok( hr == S_OK && month == 1, "Month returned %#lx, %ld\n", hr, month );
+
+    hr = ISWbemDateTime_get_YearSpecified( date, &specified );
+    ok( hr == S_OK && specified == VARIANT_TRUE, "YearSpecified returned %#lx, %d\n", hr, specified );
+    hr = ISWbemDateTime_get_IsInterval( date, &interval );
+    ok( hr == S_OK && interval == VARIANT_FALSE, "IsInterval returned %#lx, %d\n", hr, interval );
+
+    hr = ISWbemDateTime_GetVarDate( date, VARIANT_FALSE, &var_date );
+    ok( hr == S_OK, "GetVarDate returned %#lx\n", hr );
+
+    hr = ISWbemDateTime_put_YearSpecified( date, VARIANT_FALSE );
+    ok( hr == S_OK, "put_YearSpecified returned %#lx\n", hr );
+    hr = ISWbemDateTime_get_Value( date, &value );
+    ok( hr == S_OK, "get_Value returned %#lx\n", hr );
+    if (value)
+    {
+        ok( !wcsncmp( value, L"****", 4 ), "unexpected datetime %s\n", wine_dbgstr_w( value ) );
+        SysFreeString( value );
+    }
+
+    value = SysAllocString( L"invalid" );
+    hr = ISWbemDateTime_put_Value( date, value );
+    ok( hr == WBEM_E_INVALID_PARAMETER, "invalid date returned %#lx\n", hr );
+    SysFreeString( value );
+
+    hr = ISWbemDateTime_put_IsInterval( date, VARIANT_TRUE );
+    ok( hr == S_OK, "put_IsInterval returned %#lx\n", hr );
+    hr = ISWbemDateTime_get_IsInterval( date, &interval );
+    ok( hr == S_OK && interval == VARIANT_TRUE, "IsInterval returned %#lx, %d\n", hr, interval );
+    hr = ISWbemDateTime_put_Day( date, 100 );
+    ok( hr == S_OK, "interval day returned %#lx\n", hr );
+    hr = ISWbemDateTime_get_Value( date, &value );
+    if (SUCCEEDED(hr) && value)
+    {
+        ok( !wcsncmp( value, L"00000100", 8 ), "unexpected interval %s\n", wine_dbgstr_w( value ) );
+        SysFreeString( value );
+    }
+
+    ISWbemDateTime_Release( date );
+}
+
 START_TEST(wbemdisp)
 {
+    test_swbemdatetime();
     CoInitialize( NULL );
 
     test_ParseDisplayName();
