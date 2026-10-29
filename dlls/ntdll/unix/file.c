@@ -5667,9 +5667,12 @@ static NTSTATUS get_io_avail_mode( HANDLE handle, enum server_fd_type type, BOOL
 
         if (!(status = sync_ioctl( handle, IOCTL_SERIAL_GET_TIMEOUTS, NULL, 0, &st, sizeof(st) )))
         {
-            *avail_mode = (!st.ReadTotalTimeoutMultiplier &&
-                           !st.ReadTotalTimeoutConstant &&
-                           st.ReadIntervalTimeout == MAXDWORD);
+            /* With MAXDWORD/MAXDWORD and a nonzero constant Windows waits for
+               the first byte (up to the constant), then returns immediately. */
+            *avail_mode = (st.ReadIntervalTimeout == MAXDWORD &&
+                           ((!st.ReadTotalTimeoutMultiplier && !st.ReadTotalTimeoutConstant) ||
+                            (st.ReadTotalTimeoutMultiplier == MAXDWORD &&
+                             st.ReadTotalTimeoutConstant && st.ReadTotalTimeoutConstant != MAXDWORD)));
             if (nexiq_trace())
                 fprintf(stderr, "NEXIQ_SERIAL avail handle=%p mode=%d interval=%u multiplier=%u constant=%u\n",
                         handle, *avail_mode, st.ReadIntervalTimeout,
