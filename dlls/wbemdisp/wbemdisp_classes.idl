@@ -27,3 +27,12 @@
     vi_progid("WINMGMTS")
 ]
 coclass WinMGMTS { interface IParseDisplayName; }
+
+[
+    threading(apartment),
+    uuid(47dfbe54-cf76-11d3-b38f-00105a1f473a),
+    helpstring("WbemScripting.SWbemDateTime"),
+    progid("WbemScripting.SWbemDateTime.1"),
+    vi_progid("WbemScripting.SWbemDateTime")
+]
+coclass SWbemDateTimeClass {}

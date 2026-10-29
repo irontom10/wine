@@ -35,6 +35,7 @@ library WbemScripting
 
 importlib("stdole2.tlb");
 
+interface ISWbemDateTime;
 interface ISWbemEventSource;
 interface ISWbemLocator;
 interface ISWbemMethod;
@@ -1322,6 +1323,59 @@ interface ISWbemServices : IDispatch
         [out, retval] ISWbemSecurity **objWbemSecurity);
 }
 
+
+[
+    object,
+    local,
+    uuid(5e97458a-cf77-11d3-b38f-00105a1f473a),
+    dual,
+    oleautomation,
+    nonextensible
+]
+interface ISWbemDateTime : IDispatch
+{
+    [id(0), propget] HRESULT Value([out, retval] BSTR *value);
+    [id(0), propput] HRESULT Value([in] BSTR value);
+    [id(1), propget] HRESULT Year([out, retval] long *value);
+    [id(1), propput] HRESULT Year([in] long value);
+    [id(2), propget] HRESULT YearSpecified([out, retval] VARIANT_BOOL *value);
+    [id(2), propput] HRESULT YearSpecified([in] VARIANT_BOOL value);
+    [id(3), propget] HRESULT Month([out, retval] long *value);
+    [id(3), propput] HRESULT Month([in] long value);
+    [id(4), propget] HRESULT MonthSpecified([out, retval] VARIANT_BOOL *value);
+    [id(4), propput] HRESULT MonthSpecified([in] VARIANT_BOOL value);
+    [id(5), propget] HRESULT Day([out, retval] long *value);
+    [id(5), propput] HRESULT Day([in] long value);
+    [id(6), propget] HRESULT DaySpecified([out, retval] VARIANT_BOOL *value);
+    [id(6), propput] HRESULT DaySpecified([in] VARIANT_BOOL value);
+    [id(7), propget] HRESULT Hours([out, retval] long *value);
+    [id(7), propput] HRESULT Hours([in] long value);
+    [id(8), propget] HRESULT HoursSpecified([out, retval] VARIANT_BOOL *value);
+    [id(8), propput] HRESULT HoursSpecified([in] VARIANT_BOOL value);
+    [id(9), propget] HRESULT Minutes([out, retval] long *value);
+    [id(9), propput] HRESULT Minutes([in] long value);
+    [id(10), propget] HRESULT MinutesSpecified([out, retval] VARIANT_BOOL *value);
+    [id(10), propput] HRESULT MinutesSpecified([in] VARIANT_BOOL value);
+    [id(11), propget] HRESULT Seconds([out, retval] long *value);
+    [id(11), propput] HRESULT Seconds([in] long value);
+    [id(12), propget] HRESULT SecondsSpecified([out, retval] VARIANT_BOOL *value);
+    [id(12), propput] HRESULT SecondsSpecified([in] VARIANT_BOOL value);
+    [id(13), propget] HRESULT Microseconds([out, retval] long *value);
+    [id(13), propput] HRESULT Microseconds([in] long value);
+    [id(14), propget] HRESULT MicrosecondsSpecified([out, retval] VARIANT_BOOL *value);
+    [id(14), propput] HRESULT MicrosecondsSpecified([in] VARIANT_BOOL value);
+    [id(15), propget] HRESULT UTC([out, retval] long *value);
+    [id(15), propput] HRESULT UTC([in] long value);
+    [id(16), propget] HRESULT UTCSpecified([out, retval] VARIANT_BOOL *value);
+    [id(16), propput] HRESULT UTCSpecified([in] VARIANT_BOOL value);
+    [id(17), propget] HRESULT IsInterval([out, retval] VARIANT_BOOL *value);
+    [id(17), propput] HRESULT IsInterval([in] VARIANT_BOOL value);
+    [id(18)] HRESULT GetVarDate([in, defaultvalue(TRUE)] VARIANT_BOOL is_local, [out, retval] DATE *value);
+    [id(19)] HRESULT SetVarDate([in] DATE value, [in, defaultvalue(TRUE)] VARIANT_BOOL is_local);
+    [id(20)] HRESULT GetFileTime([in, defaultvalue(TRUE)] VARIANT_BOOL is_local, [out, retval] BSTR *value);
+    [id(21)] HRESULT SetFileTime([in] BSTR value, [in, defaultvalue(TRUE)] VARIANT_BOOL is_local);
+}
+
 [
     threading(apartment),
     uuid(76a64158-cb41-11d1-8b02-00600806d9b6),
@@ -1342,6 +1396,18 @@ coclass SWbemLocator
 coclass SWbemNamedValueSet
 {
     interface ISWbemNamedValueSet;
+}
+
+
+[
+    threading(apartment),
+    uuid(47dfbe54-cf76-11d3-b38f-00105a1f473a),
+    progid("WbemScripting.SWbemDateTime.1"),
+    vi_progid("WbemScripting.SWbemDateTime")
+]
+coclass SWbemDateTime
+{
+    interface ISWbemDateTime;
 }
 
 } /* WbemScripting */

@@ -259,6 +259,7 @@ static const struct IClassFactoryVtbl factory_vtbl =
     factory_LockServer
 };
 
+static struct factory swbem_datetime_cf = { { &factory_vtbl }, SWbemDateTime_create };
 static struct factory swbem_locator_cf = { { &factory_vtbl }, SWbemLocator_create };
 static struct factory swbem_namedvalueset_cf = { { &factory_vtbl }, SWbemNamedValueSet_create };
 static struct factory winmgmts_cf = { { &factory_vtbl }, WinMGMTS_create };
@@ -275,6 +276,8 @@ HRESULT WINAPI DllGetClassObject( REFCLSID rclsid, REFIID iid, LPVOID *obj )
         cf = &winmgmts_cf.IClassFactory_iface;
     else if (IsEqualGUID( rclsid, &CLSID_SWbemNamedValueSet ))
         cf = &swbem_namedvalueset_cf.IClassFactory_iface;
+    else if (IsEqualGUID( rclsid, &CLSID_SWbemDateTime ))
+        cf = &swbem_datetime_cf.IClassFactory_iface;
     else
         return CLASS_E_CLASSNOTAVAILABLE;
 

@@ -4,6 +4,7 @@ IMPORTS   = oleaut32 ole32
 EXTRADLLFLAGS = -Wb,--prefer-native
 
 SOURCES = \
+	datetime.c \
 	locator.c \
 	main.c \
 	wbemdisp_classes.idl \
