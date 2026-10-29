@@ -653,6 +653,15 @@ static void test_swbemdatetime(void)
     ok( hr == S_OK, "CoCreateInstance failed: %#lx\n", hr );
     if (!date) return;
 
+    hr = ISWbemDateTime_get_Value( date, &value );
+    ok( hr == S_OK, "default Value returned %#lx\n", hr );
+    if (value)
+    {
+        ok( !wcscmp( value, L"00000101000000.000000+000" ), "unexpected default %s\n",
+            wine_dbgstr_w( value ) );
+        SysFreeString( value );
+    }
+
     hr = ISWbemDateTime_QueryInterface( date, &IID_IDispatch, (void **)&dispatch );
     ok( hr == S_OK, "IDispatch unavailable: %#lx\n", hr );
     if (dispatch)
@@ -692,7 +701,7 @@ static void test_swbemdatetime(void)
 
     value = SysAllocString( L"invalid" );
     hr = ISWbemDateTime_put_Value( date, value );
-    ok( hr == WBEM_E_INVALID_PARAMETER, "invalid date returned %#lx\n", hr );
+    ok( hr == WBEM_E_INVALID_SYNTAX, "invalid date returned %#lx\n", hr );
     SysFreeString( value );
 
     hr = ISWbemDateTime_put_IsInterval( date, VARIANT_TRUE );
