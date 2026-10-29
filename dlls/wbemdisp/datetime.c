@@ -10,6 +10,7 @@
 #define COBJMACROS
 
 #include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
 
 #include "windef.h"
@@ -632,7 +633,9 @@ static HRESULT WINAPI datetime_SetFileTime( ISWbemDateTime *iface, BSTR value, V
         if (FAILED(hr = datetime_local_offset( &local, &offset ))) return hr;
     }
     else local = utc;
-    return datetime_set_systemtime( date, &local, offset );
+    hr = datetime_set_systemtime( date, &local, offset );
+    if (SUCCEEDED(hr)) write_digits( date->value + 15, 6, (ticks.QuadPart % 10000000) / 10 );
+    return hr;
 }
 
 static const ISWbemDateTimeVtbl datetime_vtbl =
