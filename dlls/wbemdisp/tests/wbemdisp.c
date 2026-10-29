@@ -704,6 +704,14 @@ static void test_swbemdatetime(void)
     ok( hr == WBEM_E_INVALID_SYNTAX, "invalid date returned %#lx\n", hr );
     SysFreeString( value );
 
+    value = SysAllocString( L"1" );
+    hr = ISWbemDateTime_put_Value( date, value );
+    ok( hr == WBEM_E_INVALID_SYNTAX, "short date returned %#lx\n", hr );
+    SysFreeString( value );
+
+    hr = ISWbemDateTime_put_UTC( date, 721 );
+    ok( hr == WBEM_E_VALUE_OUT_OF_RANGE, "invalid UTC returned %#lx\n", hr );
+
     hr = ISWbemDateTime_put_IsInterval( date, VARIANT_TRUE );
     ok( hr == S_OK, "put_IsInterval returned %#lx\n", hr );
     hr = ISWbemDateTime_get_IsInterval( date, &interval );
