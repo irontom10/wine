@@ -220,7 +220,11 @@ static HRESULT WINAPI datetime_get_Value( ISWbemDateTime *iface, BSTR *value )
 static HRESULT WINAPI datetime_put_Value( ISWbemDateTime *iface, BSTR value )
 {
     struct datetime *date = impl_from_ISWbemDateTime( iface );
-    if (!validate_value( value )) return WBEM_E_INVALID_PARAMETER;
+    if (!validate_value( value ))
+    {
+        WARN( "invalid CIM datetime %s\n", debugstr_w(value) );
+        return WBEM_E_INVALID_SYNTAX;
+    }
     memcpy( date->value, value, sizeof(date->value) );
     return S_OK;
 }
@@ -258,7 +262,7 @@ static HRESULT datetime_put_numeric( struct datetime *date, enum datetime_compon
         return WBEM_E_INVALID_PARAMETER;
     if (component == FIELD_UTC)
     {
-        if (value < -999 || value > 999) return WBEM_E_INVALID_PARAMETER;
+        if (value < -720 || value > 720) return WBEM_E_VALUE_OUT_OF_RANGE;
         date->value[21] = value < 0 ? '-' : '+';
         if (value < 0) value = -value;
     }
@@ -700,7 +704,7 @@ HRESULT SWbemDateTime_create( void **object )
     if (!(date = calloc( 1, sizeof(*date) ))) return E_OUTOFMEMORY;
     date->ISWbemDateTime_iface.lpVtbl = &datetime_vtbl;
     date->refs = 1;
-    memcpy( date->value, L"**************.******+***", sizeof(date->value) );
+    memcpy( date->value, L"00000101000000.000000+000", sizeof(date->value) );
     *object = &date->ISWbemDateTime_iface;
     return S_OK;
 }
